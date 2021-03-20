@@ -1,7 +1,9 @@
 package net.sf.persism;
 
+import net.sf.persism.categories.ExternalDB;
 import net.sf.persism.dao.Contact;
 import net.sf.persism.dao.Customer;
+import org.junit.experimental.categories.Category;
 
 import java.sql.*;
 import java.sql.Date;
@@ -17,7 +19,8 @@ import java.util.*;
  * @author Dan Howard
  * @since 6/21/12 6:05 AM
  */
-public final class TestPostgreSQL extends BaseTest {
+@Category(ExternalDB.class)
+public class TestPostgreSQL extends BaseTest {
 
     private static final Log log = Log.getLogger(TestPostgreSQL.class);
 
@@ -26,21 +29,23 @@ public final class TestPostgreSQL extends BaseTest {
         connectionType = ConnectionTypes.PostgreSQL;
         super.setUp();
 
-        // https://jdbc.postgresql.org/documentation/head/connect.html
+        if (getClass().equals(TestPostgreSQL.class)) {
+            // https://jdbc.postgresql.org/documentation/head/connect.html
 
-        Properties props = new Properties();
-        props.load(getClass().getResourceAsStream("/postgresql.properties"));
-        String driver = props.getProperty("database.driver");
-        String url = props.getProperty("database.url");
-        String username = props.getProperty("database.username");
-        String password = props.getProperty("database.password");
-        Class.forName(driver);
+            Properties props = new Properties();
+            props.load(getClass().getResourceAsStream("/postgresql.properties"));
+            String driver = props.getProperty("database.driver");
+            String url = props.getProperty("database.url");
+            String username = props.getProperty("database.username");
+            String password = props.getProperty("database.password");
+            Class.forName(driver);
 
-        con = DriverManager.getConnection(url, props);
+            con = DriverManager.getConnection(url, props);
 
-        createTables();
+            createTables();
 
-        session = new Session(con);
+            session = new Session(con);
+        }
     }
 
     @Override
@@ -89,8 +94,8 @@ public final class TestPostgreSQL extends BaseTest {
 
         List<String> commands = new ArrayList<String>(12);
         String sql;
-//sql = "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";";
-//executeCommand(sql, con);
+        sql = "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";";
+        executeCommand(sql, con);
         if (UtilsForTests.isTableInDatabase("Orders", con)) {
             sql = "DROP TABLE Orders";
             commands.add(sql);
@@ -117,7 +122,7 @@ public final class TestPostgreSQL extends BaseTest {
             // Once you Create the type you need to drop any relations to it if you want to redefine it
             executeCommand("CREATE TYPE Regions AS ENUM ('North', 'South', 'East', 'West');", con);
         } catch (SQLException e) {
-            log.warn(e.getMessage(), e);
+            log.info(e.getMessage(), e);
         }
 
         commands.add("CREATE TABLE Customers ( " +

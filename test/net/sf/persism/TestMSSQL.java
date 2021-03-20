@@ -7,7 +7,12 @@ package net.sf.persism;
  * Time: 6:10 AM
  */
 
+import net.sf.persism.categories.ExternalDB;
+import net.sf.persism.categories.TestContainerDB;
 import net.sf.persism.dao.*;
+import org.junit.ClassRule;
+import org.junit.experimental.categories.Category;
+import org.testcontainers.containers.MSSQLServerContainer;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -19,29 +24,32 @@ import java.util.*;
 
 import static net.sf.persism.UtilsForTests.*;
 
-public final class TestMSSQL extends BaseTest {
+@Category(ExternalDB.class)
+public class TestMSSQL extends BaseTest {
 
     private static final Log log = Log.getLogger(TestMSSQL.class);
 
     @Override
     protected void setUp() throws Exception {
 
-//        BaseTest.mssqlmode = false; // to run in JTDS MODE
-
         if (BaseTest.mssqlmode) {
-            connectionType = ConnectionTypes.MSSQL;
             connectionType = ConnectionTypes.MSSQL;
         } else {
             connectionType = ConnectionTypes.JTDS;
         }
         super.setUp();
-        log.info("SQLMODE? " + BaseTest.mssqlmode);
-        con = MSSQLDataSource.getInstance().getConnection();
-        log.info("PRODUCT? " + con.getMetaData().getDriverName() + " - " + con.getMetaData().getDriverVersion());
 
-        createTables();
 
-        session = new Session(con);
+        if (getClass().equals(TestMSSQL.class)) {
+            //        BaseTest.mssqlmode = false; // to run in JTDS MODE
+            log.info("SQLMODE? " + BaseTest.mssqlmode);
+            con = MSSQLDataSource.getInstance().getConnection();
+            log.info("PRODUCT? " + con.getMetaData().getDriverName() + " - " + con.getMetaData().getDriverVersion());
+
+            createTables();
+
+            session = new Session(con);
+        }
     }
 
     @Override
@@ -704,7 +712,7 @@ public final class TestMSSQL extends BaseTest {
         } catch (Exception e) {
             failed = true;
 
-            log.error(e.getMessage(), e);
+            log.info(e.getMessage(), e);
 
             assertEquals("message s/b 'Object class net.sf.persism.dao.Customer. Column: Region Type of property: class net.sf.persism.dao.Regions - Type read: class java.lang.String VALUE: NOTAREGION'",
                     "Object class net.sf.persism.dao.Customer. Column: Region Type of property: class net.sf.persism.dao.Regions - Type read: class java.lang.String VALUE: NOTAREGION",
@@ -849,7 +857,7 @@ public final class TestMSSQL extends BaseTest {
             session.fetch(Contact.class, "select [identity] from Contacts");
         } catch (PersismException e) {
             shouldHaveFailed = true;
-            log.warn(e.getMessage(), e);
+            log.info(e.getMessage(), e);
             // Apparently we don't always get the same column order?
 //            assertEquals("message should be ", "Object class net.sf.persism.dao.Contact was not properly initialized. Some properties not found in the queried columns. : [Company, Email, StateProvince, Address2, Lastname, PartnerID, Address1, City, Firstname, LastModified, Type, ZipPostalCode, Country, Division, DateAdded, ContactName]", e.getMessage());
         }
@@ -871,7 +879,7 @@ public final class TestMSSQL extends BaseTest {
             session.fetch(ContactFail.class, "select * from Contacts");
         } catch (PersismException e) {
             shouldHaveFailed = true;
-            log.warn(e.getMessage(), e);
+            log.info(e.getMessage(), e);
             assertEquals("message should be ", "Object class net.sf.persism.dao.ContactFail was not properly initialized. Some properties not initialized in the queried columns (fail).", e.getMessage());
         }
 

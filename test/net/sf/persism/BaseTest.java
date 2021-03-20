@@ -186,16 +186,16 @@ public abstract class BaseTest extends TestCase {
         boolean failOnMissingProperties = false;
 
         try {
-            session.query(Customer.class, "SELECT Country, PHONE from CUSTOMERS");
+            session.query(Customer.class, "SELECT Country, PHONE from Customers");
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.info(e.getMessage());
             assertTrue("message should contain 'Customer was not properly initialized'", e.getMessage().contains("Customer was not properly initialized"));
             failOnMissingProperties = true;
         }
         assertTrue("Should not be able to read fields if there are missing properties", failOnMissingProperties);
 
         // Make sure all columns are NOT the CASE of the ones in the DB.
-        List<Customer> list = session.query(Customer.class, "SELECT company_NAME, Date_Of_Last_ORDER, contact_title, pHone, rEGion, postal_CODE, FAX, DATE_Registered, ADDress, CUStomer_id, Contact_name, country, city, STATUS, TestLocalDate, TestLocalDateTime from CUSTOMERS");
+        List<Customer> list = session.query(Customer.class, "SELECT company_NAME, Date_Of_Last_ORDER, contact_title, pHone, rEGion, postal_CODE, FAX, DATE_Registered, ADDress, CUStomer_id, Contact_name, country, city, STATUS, TestLocalDate, TestLocalDateTime from Customers");
 
         log.info(list);
         assertEquals("list should be 1", 1, list.size());
@@ -239,7 +239,7 @@ public abstract class BaseTest extends TestCase {
 
         assertTrue("order # > 0", order.getId() > 0);
 
-        List<Order> orders = session.query(Order.class, "select * from orders");
+        List<Order> orders = session.query(Order.class, "select * from Orders");
         assertEquals("should have 1 order", 1, orders.size());
         assertTrue("order id s/b > 0", orders.get(0).getId() > 0);
 
@@ -264,7 +264,7 @@ public abstract class BaseTest extends TestCase {
         // REMOVE DATE_PAID ALIAS
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT c.Customer_ID, c.Company_Name, o.ID Order_ID, o.Name AS Description, o.Date_Paid, o.Created AS DateCreated, o.PAID ");
-        sb.append(" FROM ORDERS o");
+        sb.append(" FROM Orders o");
         sb.append(" JOIN Customers c ON o.Customer_ID = c.Customer_ID");
 
         String sql = sb.toString();
@@ -309,7 +309,7 @@ public abstract class BaseTest extends TestCase {
         session.delete(customer); // in case it already exists.
         session.insert(customer);
 
-        List<String> list = session.query(String.class, "SELECT Country from CUSTOMERS");
+        List<String> list = session.query(String.class, "SELECT Country from Customers");
 
 
         Order order;
@@ -327,11 +327,11 @@ public abstract class BaseTest extends TestCase {
         assertEquals("list should have 1", 1, list.size());
         assertEquals("String should be US", "US", list.get(0));
 
-        String countryString = session.fetch(String.class, "SELECT Country from CUSTOMERS");
+        String countryString = session.fetch(String.class, "SELECT Country from Customers");
         assertEquals("String should be US", "US", countryString);
 
         countryString = "NOT US";
-        countryString = session.fetch(String.class, "SELECT Country from CUSTOMERS");
+        countryString = session.fetch(String.class, "SELECT Country from Customers");
         assertEquals("String should be US", "US", countryString);
 
         List<Date> dates = session.query(Date.class, "select Date_Registered from Customers ");
@@ -420,7 +420,7 @@ public abstract class BaseTest extends TestCase {
         contact.setDivision("Y");
         assertEquals("0 update?", 0, session.update(contact));
 
-        List<Contact> contacts = session.query(Contact.class, "SELECT * FROM CONTACTS");
+        List<Contact> contacts = session.query(Contact.class, "SELECT * FROM Contacts");
         assertEquals("should have 1? ", 1, contacts.size());
 
         Contact contact1 = contacts.get(0);
@@ -578,9 +578,11 @@ public abstract class BaseTest extends TestCase {
         assertEquals("time s/b '10:23:43'", localTime, testLocalTypes2.getTimeOnly().format(DateTimeFormatter.ISO_TIME));
 
         if (connectionType == ConnectionTypes.MySQL) {
-            // MySQL rounds off milliseconds - 1998-02-17T10:23:43.567 comes out like 1998-02-17T10:23:43.0
+            // MySQL rounds off milliseconds - 1998-02-17T10:23:43.567 comes out like 1998-02-17T10:23:43
             String s = ldt.format(DateTimeFormatter.ISO_DATE_TIME);
-            assertEquals("datetime s/b '1998-02-17 10:23:43'", s.substring(0, s.indexOf('.')), testLocalTypes2.getDateAndTime().format(DateTimeFormatter.ISO_DATE_TIME));
+            assertEquals("datetime s/b '1998-02-17 10:23:43'",
+                    s.substring(0, s.indexOf('.')),
+                    testLocalTypes2.getDateAndTime().format(DateTimeFormatter.ISO_DATE_TIME));
         } else {
             assertEquals("datetime s/b '1998-02-17 10:23:43.567'", ldt.format(DateTimeFormatter.ISO_DATE_TIME), testLocalTypes2.getDateAndTime().format(DateTimeFormatter.ISO_DATE_TIME));
         }
@@ -592,7 +594,7 @@ public abstract class BaseTest extends TestCase {
         testLocalTypes3.setDescription("time later in the day to test awfulness of SQLite");
         testLocalTypes3.setTimeOnly(lt2);
 
-       assertEquals("s/b 1?", 1, session.insert(testLocalTypes3));
+        assertEquals("s/b 1?", 1, session.insert(testLocalTypes3));
 
         List<DateTestLocalTypes> list = session.query(DateTestLocalTypes.class, "select * FROM DateTestLocalTypes");
         log.info(list);
@@ -728,7 +730,7 @@ public abstract class BaseTest extends TestCase {
 
     }
 
-    void executeCommands(List<String> commands, Connection con) throws SQLException {
+    static void executeCommands(List<String> commands, Connection con) throws SQLException {
         try (Statement st = con.createStatement()) {
             for (String command : commands) {
                 log.info(command);
@@ -738,7 +740,7 @@ public abstract class BaseTest extends TestCase {
     }
 
     // use if you want to run commands one at a time for debugging or testing
-    void executeCommand(String command, Connection con) throws SQLException {
+    static void executeCommand(String command, Connection con) throws SQLException {
         try (Statement st = con.createStatement()) {
             log.info(command);
             st.execute(command);

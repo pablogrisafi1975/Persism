@@ -2,6 +2,10 @@ package net.sf.persism;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
+import net.sf.persism.categories.ExternalDB;
+import net.sf.persism.categories.TestContainerDB;
+import org.junit.Ignore;
+import org.junit.experimental.categories.Category;
 
 /**
  * Comments for AllTests go here.
@@ -9,6 +13,8 @@ import junit.framework.TestSuite;
  * @author Dan Howard
  * @since 10/8/11 6:03 PM
  */
+@Category({TestContainerDB.class, ExternalDB.class})
+@Ignore
 public class AllTests {
 
     private AllTests() {
@@ -34,7 +40,6 @@ public class AllTests {
         theTestSuite.addTestSuite(TestMetaData.class);
         theTestSuite.addTestSuite(TestNorthwind.class);
         theTestSuite.addTestSuite(TestPubs.class);
-        theTestSuite.addTestSuite(TestMiscellaneous.class);
 
         return theTestSuite;
     }

@@ -1,16 +1,20 @@
 package net.sf.persism;
 
 import junit.framework.TestCase;
+import net.sf.persism.categories.ExternalDB;
+import net.sf.persism.categories.LocalDB;
+import net.sf.persism.categories.TestContainerDB;
 import net.sf.persism.dao.northwind.*;
+import org.junit.ClassRule;
+import org.testcontainers.containers.MSSQLServerContainer;
 
 import javax.imageio.ImageIO;
 import java.io.File;
-import java.math.BigDecimal;
 import java.sql.*;
 import java.text.DecimalFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -21,6 +25,7 @@ import java.util.Properties;
  * @author Dan Howard
  * @since 5/3/12 8:46 PM
  */
+@org.junit.experimental.categories.Category(ExternalDB.class)
 public class TestNorthwind extends TestCase {
 
     private static final Log log = Log.getLogger(TestNorthwind.class);
@@ -46,6 +51,8 @@ public class TestNorthwind extends TestCase {
         session = new Session(con);
     }
 
+
+    @Override
     protected void tearDown() throws Exception {
         con.close();
         super.tearDown();

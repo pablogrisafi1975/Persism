@@ -7,16 +7,23 @@
 package net.sf.persism;
 
 import junit.framework.TestCase;
+import net.sf.persism.categories.ExternalDB;
+import net.sf.persism.categories.TestContainerDB;
 import net.sf.persism.dao.pubs.Author;
 import net.sf.persism.dao.pubs.JobType;
 import net.sf.persism.dao.pubs.PublisherInfo;
+import org.junit.ClassRule;
+import org.junit.experimental.categories.Category;
+import org.testcontainers.containers.MSSQLServerContainer;
+
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.List;
-import java.util.Properties;
+import java.sql.SQLException;
+import java.util.*;
 
 // Does not share common tests - this is just to do some specific tests on SQL with PUBS DB
+@Category(ExternalDB.class)
 public class TestPubs extends TestCase {
 
     private static final Log log = Log.getLogger(TestPubs.class);
@@ -24,22 +31,26 @@ public class TestPubs extends TestCase {
     Connection con;
     Session session;
 
+    @Override
     protected void setUp() throws Exception {
         super.setUp();
 
-        Properties props = new Properties();
-        props.load(getClass().getResourceAsStream("/pubs.properties"));
-        String driver = props.getProperty("database.driver");
-        String url = props.getProperty("database.url");
-        String username = props.getProperty("database.username");
-        String password = props.getProperty("database.password");
-        Class.forName(driver);
+        if (getClass().equals(TestPubs.class)) {
+            Properties props = new Properties();
+            props.load(getClass().getResourceAsStream("/pubs.properties"));
+            String driver = props.getProperty("database.driver");
+            String url = props.getProperty("database.url");
+            String username = props.getProperty("database.username");
+            String password = props.getProperty("database.password");
+            Class.forName(driver);
 
-        con = DriverManager.getConnection(url, username, password);
+            con = DriverManager.getConnection(url, username, password);
 
-        session = new Session(con);
+            session = new Session(con);
+        }
     }
 
+    @Override
     protected void tearDown() throws Exception {
         con.close();
         super.tearDown();

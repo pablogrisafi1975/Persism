@@ -1,11 +1,15 @@
 package net.sf.persism;
 
+import net.sf.persism.categories.ExternalDB;
+import net.sf.persism.categories.TestContainerDB;
 import net.sf.persism.dao.Customer;
-import net.sf.persism.dao.Order;
 import net.sf.persism.dao.Regions;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.experimental.categories.Category;
+import org.testcontainers.containers.MySQLContainer;
 
 import java.sql.*;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -14,7 +18,8 @@ import java.util.Properties;
  * @author Dan Howard
  * @since 6/4/12 9:52 PM
  */
-public final class TestMySQL extends BaseTest {
+@Category(ExternalDB.class)
+public class TestMySQL extends BaseTest {
 
     private static final Log log = Log.getLogger(TestMySQL.class);
 
@@ -38,7 +43,6 @@ public final class TestMySQL extends BaseTest {
         createTables();
 
         session = new Session(con);
-
     }
 
     @Override
@@ -54,8 +58,6 @@ public final class TestMySQL extends BaseTest {
 
     @Override
     protected void createTables() throws SQLException {
-
-        this.connectionType = connectionType;
 
         List<String> commands = new ArrayList<String>(12);
 
@@ -172,7 +174,7 @@ public final class TestMySQL extends BaseTest {
 
         session.insert(customer);
 
-        List<Customer> customers = session.query(Customer.class, "SELECT * FROM CUSTOMERS");
+        List<Customer> customers = session.query(Customer.class, "SELECT * FROM Customers");
         log.info(customers);
 
         String result = session.fetch(String.class, "select `Contact_Name` from Customers where Customer_ID = ?", 123);
