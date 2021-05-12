@@ -1,15 +1,7 @@
-/**
- * Comments for TestUtil go here.
- * @author Dan Howard
- * @since 5/24/12 5:33 PM
- */
 package net.sf.persism;
 
 import junit.framework.TestCase;
-import net.sf.persism.dao.Postman;
-
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 public class TestUtil extends TestCase {
 
@@ -25,7 +17,7 @@ public class TestUtil extends TestCase {
 
     public void testReplaceAll() {
         String text = "this is a test";
-        text = Util.replaceAll(text,' ', '_');
+        text = Util.replaceAll(text, ' ', '_');
         log.info(text);
     }
 
@@ -52,15 +44,5 @@ public class TestUtil extends TestCase {
             fail(e.getMessage());
         }
 
-    }
-
-    public void testJunk() {
-        Postman postman = new Postman().
-                host("blah").
-                port(80).
-                user("x").
-                password("123");
-
-        log.info(postman);
     }
 }

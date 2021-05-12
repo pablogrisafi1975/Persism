@@ -7,10 +7,8 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.sql.*;
 import java.sql.ResultSet;
-import java.util.Arrays;
+import java.util.*;
 import java.util.Date;
-import java.util.Properties;
-import java.util.UUID;
 
 /**
  * Comments for Util go here.
@@ -104,19 +102,18 @@ final class Util {
         return sb.toString();
     }
 
-    // https://stackoverflow.com/questions/17893609/convert-uuid-to-byte-that-works-when-using-uuid-nameuuidfrombytesb
-    // THANKS!
-    public static UUID asUuid(byte[] bytes) {
-        ByteBuffer bb = ByteBuffer.wrap(bytes);
-        long firstLong = bb.getLong();
-        long secondLong = bb.getLong();
-        return new UUID(firstLong, secondLong);
+    public static <T> boolean isRecord(Class<T> objectClass) {
+        // Java 8 test for isRecord since class.isRecord doesn't exist in Java 8
+        Class<?> sup = objectClass.getSuperclass();
+        while (!sup.equals(Object.class) ) {
+            if ("java.lang.Record".equals(sup.getName())) {
+                return true;
+            }
+            sup = sup.getSuperclass();
+        }
+        return false;
     }
 
-    public static byte[] asBytes(UUID uuid) {
-        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-        bb.putLong(uuid.getMostSignificantBits());
-        bb.putLong(uuid.getLeastSignificantBits());
-        return bb.array();
-    }
+
+
 }

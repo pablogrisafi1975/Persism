@@ -1,6 +1,7 @@
 package net.sf.persism;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,11 +17,18 @@ final class PropertyInfo {
     String propertyName;
     Method getter;
     Method setter;
+    Field field;
+    boolean readOnly;
 
     Map<Class<? extends Annotation>, Annotation> annotations = new HashMap<Class<? extends Annotation>, Annotation>(4);
 
     Annotation getAnnotation(Class<? extends  Annotation> annotationClass) {
         return annotations.get(annotationClass);
+    }
+
+    // for collections
+    String propertyName() {
+        return propertyName;
     }
 
     @Override
@@ -30,6 +38,7 @@ final class PropertyInfo {
                 ", getter=" + getter +
                 ", setter=" + setter +
                 ", annotations=" + annotations +
+                ", readOnly=" + readOnly +
                 '}';
     }
 }

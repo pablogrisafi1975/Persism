@@ -12,6 +12,7 @@ import net.sf.persism.categories.TestContainerDB;
 import net.sf.persism.dao.pubs.Author;
 import net.sf.persism.dao.pubs.JobType;
 import net.sf.persism.dao.pubs.PublisherInfo;
+import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.experimental.categories.Category;
 import org.testcontainers.containers.MSSQLServerContainer;
@@ -72,6 +73,17 @@ public class TestPubs extends TestCase {
                 author.setContract(true);
 
                 session.insert(author);
+            } else {
+                author.setFirstName("Dan");
+                author.setLastName("Howard");
+                author.setAddress("123 Sesame Street");
+                author.setCity("MTL");
+                author.setState("OH");
+                author.setPostalCode("45143");
+                author.setContract(true);
+
+                session.update(author);
+                session.fetch(author);
             }
 
 
@@ -135,5 +147,10 @@ public class TestPubs extends TestCase {
         assertEquals("min lvl s/b ", 175, jobType.getMinLevel());
         assertEquals("max lvl s/b ", 250, jobType.getMaxLevel());
 
+    }
+
+    @AfterClass
+    public void Xfinally() {
+        log.warn(session.getMetaData());
     }
 }

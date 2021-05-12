@@ -63,6 +63,20 @@ public final class TestH2 extends BaseTest {
     public void testContactTable() throws SQLException {
         super.testContactTable();
         assertTrue(true);
+
+        Contact contact = getContactForTest();
+        String sql = session.getMetaData().getSelectStatement(contact, con);
+
+        // this works
+        Contact other = new Contact();
+        other.setIdentity(contact.getIdentity());
+        session.fetch(other);
+
+        // todo the question here is how to allow a user to use the converter
+        // Fails with some DBs unless you convert yourself.
+        List<Contact> contacts = session.query(Contact.class, sql, (Object) Convertor.asBytes(contact.getIdentity()));
+        log.info(contacts);
+
     }
 
     @Override
@@ -78,6 +92,9 @@ public final class TestH2 extends BaseTest {
                 " ID IDENTITY PRIMARY KEY, " +
                 " NAME VARCHAR(30) NULL, " +
                 " PAID BIT NULL, " +
+                " Prepaid BIT NULL," + // would match to getter? Not if it's GETPrePaid FFS
+                " IsCollect BIT NULL," +
+                " IsCancelled BIT NULL," + // property is IsCancelled
                 " Customer_ID VARCHAR(10) NULL, " +
                 " Created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
                 " Date_Paid TIMESTAMP NULL, " +
@@ -118,9 +135,10 @@ public final class TestH2 extends BaseTest {
                 " Customer_ID varchar(10) NOT NULL, " +
                 " Paid BIT NOT NULL, " +
                 " Price NUMERIC(7,3) NOT NULL, " +
+                " ACTUALPRICE NUMERIC(7,3) NOT NULL, " +
                 " Status INT DEFAULT 1, " +
+                " Created DateTime default current_timestamp, " + // make read-only in Invoice Object
                 " Quantity NUMERIC(10) NOT NULL, " +
-                " Total NUMERIC(10,3) NOT NULL, " +
                 " Discount NUMERIC(10,3) NOT NULL " +
                 ") ");
 
@@ -248,7 +266,7 @@ public final class TestH2 extends BaseTest {
             executeCommand("DROP TABLE ByteData", con);
         }
         sql = "CREATE TABLE ByteData ( " +
-                "ID VARCHAR(60), " +
+                "ID VARCHAR(1), " +
                 "BYTE1 INT, " +
                 "BYTE2 INT ) ";
         executeCommand(sql, con);
@@ -256,7 +274,7 @@ public final class TestH2 extends BaseTest {
 
     public void testByteData() {
         ByteData bd = new ByteData();
-        bd.setId("test 1");
+        bd.setId('1');
         bd.setByte1((byte) 42);
         bd.setByte2((short) 299);
 
@@ -269,8 +287,6 @@ public final class TestH2 extends BaseTest {
         log.info(bd);
 
         session.query(ByteData.class, "select * from ByteData");
-
-
     }
 
     public void testH2InsertAndReadBack() throws SQLException {
@@ -322,51 +338,9 @@ public final class TestH2 extends BaseTest {
         assertEquals("name s/b PHHHH", "PHHHH", order.getName());
     }
 
+    @Override
     public void testInvoice() {
-
-        Customer customer = new Customer();
-        customer.setCompanyName("TEST");
-        customer.setCustomerId("MOO");
-        customer.setAddress("123 sesame street");
-        customer.setCity("city");
-        customer.setContactName("fred flintstone");
-        customer.setContactTitle("Lord");
-        customer.setCountry("US");
-        customer.setDateRegistered(new java.sql.Timestamp(System.currentTimeMillis()));
-        customer.setFax("123-456-7890");
-        customer.setPhone("456-678-1234");
-        customer.setPostalCode("54321");
-        customer.setRegion(Regions.East);
-
-        session.insert(customer);
-
-        Invoice invoice = new Invoice();
-        invoice.setCustomerId("MOO");
-        invoice.setPrice(10.5f);
-        invoice.setQuantity(10);
-        invoice.setTotal(new BigDecimal(invoice.getPrice() * invoice.getQuantity()));
-        invoice.setPaid(true);
-
-        session.insert(invoice);
-
-        assertTrue("Invoice ID > 0", invoice.getInvoiceId() > 0);
-
-        List<Invoice> invoices = session.query(Invoice.class, "select * from invoices where customer_id=?", "MOO");
-        assertEquals("invoices s/b 1", 1, invoices.size());
-
-        invoice = invoices.get(0);
-
-        log.info(invoice);
-
-        assertEquals("customer s/b MOO", "MOO", invoice.getCustomerId());
-        assertEquals("invoice # s/b 1", 1, invoice.getInvoiceId());
-        assertEquals("price s/b 10.5", 10.5f, invoice.getPrice());
-        assertEquals("qty s/b 10", 10, invoice.getQuantity());
-
-        NumberFormat nf = NumberFormat.getInstance();
-
-        assertEquals("totals/b 105.00", nf.format(105.0f), nf.format(invoice.getTotal()));
-
+        super.testInvoice();
     }
 
     public void testColumnDefaults() {
@@ -470,6 +444,7 @@ public final class TestH2 extends BaseTest {
             Util.cleanup(st, rs);
         }
     }
+
 
     public void testDatabaseMetaData() {
 
@@ -608,6 +583,10 @@ public final class TestH2 extends BaseTest {
         log.info("SAVED SILVER: " + saveGame.getSilver());
         log.info("AFTER FETCH SIZE?" + saveGame.getSomethingBig().length);
         assertEquals("size should be the same ", size, saveGame.getSomethingBig().length);
+
+        saveGame.setSomethingBig(null);
+        session.update(saveGame);
+        session.fetch(saveGame);
     }
 
 

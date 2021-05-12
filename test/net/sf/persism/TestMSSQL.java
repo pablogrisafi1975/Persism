@@ -8,17 +8,13 @@ package net.sf.persism;
  */
 
 import net.sf.persism.categories.ExternalDB;
-import net.sf.persism.categories.TestContainerDB;
 import net.sf.persism.dao.*;
-import org.junit.ClassRule;
 import org.junit.experimental.categories.Category;
-import org.testcontainers.containers.MSSQLServerContainer;
 
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -31,6 +27,9 @@ public class TestMSSQL extends BaseTest {
 
     @Override
     protected void setUp() throws Exception {
+
+        // LIST SYSTEM PROPERTIES
+//        System.getProperties().list(System.out);
 
         if (BaseTest.mssqlmode) {
             connectionType = ConnectionTypes.MSSQL;
@@ -95,6 +94,9 @@ public class TestMSSQL extends BaseTest {
                 " ROW_ID VARCHAR(30) NULL, " +
                 " Customer_ID VARCHAR(10) NULL, " +
                 " PAID BIT NULL, " +
+                " Prepaid BIT NULL," +
+                " IsCollect BIT NULL," +
+                " IsCancelled BIT NULL," +
                 " STATUS CHAR(1) NULL, " +
                 " CREATED datetime, " +
                 " DATE_PAID datetime, " +
@@ -116,15 +118,34 @@ public class TestMSSQL extends BaseTest {
                 " City VARCHAR(30) NULL, " +
                 " Region VARCHAR(10) NULL, " +
                 " Postal_Code VARCHAR(10) NULL, " +
-                " Country VARCHAR(2) NULL, " +
+                " Country VARCHAR(2) DEFAULT 'US', " +
                 " Phone VARCHAR(30) NULL, " +
                 " Fax VARCHAR(30) NULL, " +
-                " STATUS CHAR(1) NULL, " +
+                " STATUS VARCHAR(1) NULL, " +
                 " Date_Registered datetime  default current_timestamp, " +
                 " Date_Of_Last_Order DATE, " +
                 " TestLocalDate datetime, " +
                 " TestLocalDateTime datetime " +
                 ") ");
+
+        if (UtilsForTests.isTableInDatabase("Invoices", con)) {
+            commands.add("DROP TABLE Invoices");
+        }
+
+        commands.add("CREATE TABLE Invoices ( " +
+                " Invoice_ID [int] IDENTITY(1,1) NOT NULL," +
+                " Customer_ID varchar(10) NOT NULL, " +
+                " Paid BIT NOT NULL, " +
+                " Price NUMERIC(7,3) NOT NULL, " +
+                " ActualPrice NUMERIC(7,3) NOT NULL, " +
+                " Status INT DEFAULT 1, " +
+                " Created DateTime default current_timestamp, " + // make read-only in Invoice Object
+                " Quantity NUMERIC(10) NOT NULL, " +
+                //" Total NUMERIC(10,3) NOT NULL, " +
+                " Discount NUMERIC(10,3) NOT NULL " +
+                ") ");
+
+
 
         if (isTableInDatabase("TABLENOPRIMARY", con)) {
             commands.add("DROP TABLE TABLENOPRIMARY");
@@ -391,7 +412,8 @@ public class TestMSSQL extends BaseTest {
                 "   [PrimaryAuthorization] [varchar](20) NULL, " +
                 "   [SecondaryAuthorization] [varchar](20) NULL, " +
                 "   [Field42] [varchar](40) NULL, " +
-                "   [Modifiers] [varchar](15) NULL " +
+                "   [Modifiers] [varchar](15) NULL, " +
+                "   [OriginalValue] int NULL, " +
                 ") ON [PRIMARY] TEXTIMAGE_ON [PRIMARY] ";
 
         commands.add(sql);
@@ -748,7 +770,11 @@ public class TestMSSQL extends BaseTest {
         c1.setCustomerId("123");
         c1.setCompanyName("ABC INC");
         c1.setRegion(Regions.East);
+        c1.setStatus('1');
         session.insert(c1);
+        session.fetch(c1);
+        c1.setStatus('2');
+        session.update(c1);
 
         Customer cx = new Customer();
         cx.setCustomerId("123");
@@ -812,7 +838,16 @@ public class TestMSSQL extends BaseTest {
         exam.setExamCodeNo(procedure.getExamCodeNo());
         exam.setRoomNo(room.getRoomNo());
         exam.setExamDate(new Date(System.currentTimeMillis()));
+        exam.setOriginalValue(10);
         session.insert(exam);
+
+        assertTrue("ud > 0", exam.getExamId() > 0);
+        assertEquals("original value = 10", 10, exam.getOriginalValue());
+
+        Exam exam1 = new Exam();
+        exam1.setExamId(exam.getExamId());;
+        session.fetch(exam1);
+        assertEquals("sb/v 10?", 10, exam1.getOriginalValue()); // can't read this value back since we remove it
 
         String sql;
         sql = "select top 10 ExamID, p.DESC_E ProcedureDescription, r.DESC_E RoomDescription, eXaMdAtE from exams " +

@@ -4,14 +4,18 @@ import junit.framework.TestCase;
 import net.sf.persism.dao.*;
 
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.text.DateFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+
+import static java.lang.System.out;
 
 /**
  * Comments for BaseTest go here.
@@ -206,60 +210,7 @@ public abstract class BaseTest extends TestCase {
 
     public void testQueryResult() throws Exception {
 
-
-        Customer c1 = new Customer();
-        c1.setCustomerId("123");
-        c1.setCompanyName("ABC INC");
-        c1.setStatus('x');
-        session.insert(c1);
-
-        Customer c2 = new Customer();
-        c2.setCustomerId("456");
-        c2.setCompanyName("XYZ INC");
-        c2.setStatus('2');
-        session.insert(c2);
-
-        Order order;
-        order = DAOFactory.newOrder(con);
-        order.setCustomerId("123");
-        order.setName("ORDER 1");
-        order.setCreated(LocalDate.now());
-        order.setDatePaid(LocalDateTime.now());
-
-        order.setPaid(true);
-        session.insert(order);
-
-//        Order order2;
-//        order2 = DAOFactory.newOrder(con);
-//        order2.setCustomerId("446");
-//        order2.setName("ORDER 2");
-//        order2.setCreated(LocalDate.now());
-//        order2.setPaid(true);
-//        session.insert(order);
-
-        assertTrue("order # > 0", order.getId() > 0);
-
-        List<Order> orders = session.query(Order.class, "select * from Orders");
-        assertEquals("should have 1 order", 1, orders.size());
-        assertTrue("order id s/b > 0", orders.get(0).getId() > 0);
-
-        order = DAOFactory.newOrder(con);
-        order.setCustomerId("123");
-        order.setName("ORDER 2");
-        order.setCreated(LocalDate.now());
-        session.insert(order);
-
-        order = DAOFactory.newOrder(con);
-        order.setCustomerId("456");
-        order.setName("ORDER 3");
-        order.setCreated(LocalDate.now());
-        session.insert(order);
-
-        order = DAOFactory.newOrder(con);
-        order.setCustomerId("456");
-        order.setName("ORDER 4");
-        order.setCreated(LocalDate.now());
-        session.insert(order);
+        setupDataForQuery();
 
         // REMOVE DATE_PAID ALIAS
         StringBuilder sb = new StringBuilder();
@@ -284,7 +235,56 @@ public abstract class BaseTest extends TestCase {
                 assertFalse("order OTHER s/b NOT paid", customerOrder.isPaid());
             }
         }
+    }
 
+    private void setupDataForQuery() throws SQLException {
+        Customer c1 = new Customer();
+        c1.setCustomerId("123");
+        c1.setCompanyName("ABC INC");
+        c1.setStatus('x');
+        session.insert(c1);
+
+        Customer c2 = new Customer();
+        c2.setCustomerId("456");
+        c2.setCompanyName("XYZ INC");
+        c2.setStatus('2');
+        session.insert(c2);
+
+        Order order;
+        order = DAOFactory.newOrder(con);
+        order.setCustomerId("123");
+        order.setName("ORDER 1");
+        order.setCreated(LocalDate.now());
+        order.setDatePaid(LocalDateTime.now());
+
+        order.setPaid(true);
+        session.insert(order);
+
+        assertTrue("order # > 0", order.getId() > 0);
+
+        session.fetch(order);
+
+        List<Order> orders = session.query(Order.class, "select * from Orders");
+        assertEquals("should have 1 order", 1, orders.size());
+        assertTrue("order id s/b > 0", orders.get(0).getId() > 0);
+
+        order = DAOFactory.newOrder(con);
+        order.setCustomerId("123");
+        order.setName("ORDER 2");
+        order.setCreated(LocalDate.now());
+        session.insert(order);
+
+        order = DAOFactory.newOrder(con);
+        order.setCustomerId("456");
+        order.setName("ORDER 3");
+        order.setCreated(LocalDate.now());
+        session.insert(order);
+
+        order = DAOFactory.newOrder(con);
+        order.setCustomerId("456");
+        order.setName("ORDER 4");
+        order.setCreated(LocalDate.now());
+        session.insert(order);
     }
 
 
@@ -406,6 +406,8 @@ public abstract class BaseTest extends TestCase {
         log.info("Local Date: " + LocalDateTime.now() + " INSTANT: " + Instant.now());
 
         session.insert(contact);
+        contact.setNotes(null);
+        session.update(contact);
 
         Contact contact2 = new Contact();
         contact2.setIdentity(identity);
@@ -454,28 +456,62 @@ public abstract class BaseTest extends TestCase {
         contact = getContactForTest();
         session.insert(contact);
 
+        boolean shouldFail = false;
+
         final UUID randomUUID = UUID.randomUUID();
         try {
             session.withTransaction(() -> {
                 Contact contactForTest = getContactForTest();
                 contactForTest.setIdentity(randomUUID);
                 session.insert(contactForTest);
+                contactForTest.setAddress1("123 Somewhere");
                 contactForTest.setContactName("HELLO?!");
+                contactForTest.setNotes("notes?");
                 session.update(contactForTest);
                 session.fetch(contactForTest);
 
                 log.info("contact after insert/update before commit/rollback: " + contactForTest);
 
                 // NOW FAIL the transaction to see that the new contact was not committed
-                session.query(Object.class, "select * FROM MISSING CONTACT");
+                session.query(Object.class, "select * FROM TABLE THAT DOESN'T EXIST!!!!");
             });
         } catch (Exception e) {
-            log.info("FAILS?: " + e);
+            log.info("SHOULD FAIL: " + e);
+            shouldFail = true;
         }
+
+        assertTrue(shouldFail);
+
+        // pass one
+        session.withTransaction(() -> {
+            Contact contactForTest = getContactForTest();
+            contactForTest.setIdentity(UUID.randomUUID());
+            session.insert(contactForTest);
+            contactForTest.setContactName("HELLO?!@");
+            session.update(contactForTest);
+            session.fetch(contactForTest);
+
+            log.info("contact after insert/update before commit/rollback: " + contactForTest);
+        });
+
         Contact contactForTest = getContactForTest();
         contactForTest.setIdentity(randomUUID);
 
         assertFalse("Should not be found", session.fetch(contactForTest));
+
+        // null checks for unset properties.
+        contact = new Contact();
+        UUID rand = UUID.randomUUID();
+        contact.setIdentity(rand);
+        contact.setPartnerId(partnerId);
+        contact.setType("X");
+        contact.setFirstname("not null");
+        contact.setLastname("not null");
+        contact.setCompany("Y");
+        contact.setContactName("X");
+
+        session.insert(contact);
+        session.fetch(contact);
 
     }
 
@@ -594,7 +630,7 @@ public abstract class BaseTest extends TestCase {
         testLocalTypes3.setDescription("time later in the day to test awfulness of SQLite");
         testLocalTypes3.setTimeOnly(lt2);
 
-        assertEquals("s/b 1?", 1, session.insert(testLocalTypes3));
+        assertEquals("s/b 1?", 1, session.insert(testLocalTypes3).rows());
 
         List<DateTestLocalTypes> list = session.query(DateTestLocalTypes.class, "select * FROM DateTestLocalTypes");
         log.info(list);
@@ -673,29 +709,122 @@ public abstract class BaseTest extends TestCase {
 
     }
 
+    public void testIsNamedBooleanProperties() throws SQLException {
+        Order order = DAOFactory.newOrder(con);
+        order.setName("test 1");
+        order.setCancelled(true);
+        order.setCollect(true);
+        order.setCancelled(true);
+        order.setPrepaid(true);
+        order.setPaid(true);
+        session.insert(order);
+
+        assertTrue("order # > 0", order.getId() > 0);
+
+        Order order2 = DAOFactory.newOrder(con);
+        order2.setId(order.getId());
+        assertTrue("should be found ", session.fetch(order2));
+
+        assertTrue("paid", order2.isPaid());
+        assertTrue("cancelled", order2.isCancelled());
+        assertTrue("prepaid", order2.isPrepaid());
+        assertTrue("collect", order2.isCollect());
+    }
+
+    public void testInvoice() {
+
+        Customer customer = new Customer();
+        customer.setCompanyName("TEST");
+        customer.setCustomerId("MOO");
+        customer.setAddress("123 sesame street");
+        customer.setCity("city");
+        customer.setContactName("fred flintstone");
+        customer.setContactTitle("Lord");
+        //customer.setCountry("US");
+        customer.setDateRegistered(new java.sql.Timestamp(System.currentTimeMillis()));
+        customer.setFax("123-456-7890");
+        customer.setPhone("456-678-1234");
+        customer.setPostalCode("54321");
+        customer.setRegion(Regions.East);
+        //customer.setStatus('1');
+        session.insert(customer);
+
+        session.fetch(customer); // DOESNT FAIl?
+
+        assertEquals("country s/b US", "US", customer.getCountry());
+
+        Invoice invoice = new Invoice();
+        invoice.setCustomerId("MOO");
+        invoice.setPrice(10.5f);
+        invoice.setQuantity(10);
+        invoice.setTotal(new BigDecimal(invoice.getPrice() * invoice.getQuantity()));
+        invoice.setPaid(true);
+        invoice.setActualPrice(new BigDecimal("10.23"));
+
+        session.insert(invoice);
+
+        assertTrue("Invoice ID > 0", invoice.getInvoiceId() > 0);
+        assertNotNull("Created s/b not null", invoice.getCreated()); // note no setter
+        assertNotNull("what about junk1? ", invoice.getJunk1());
+
+        List<Invoice> invoices = session.query(Invoice.class, "select * from Invoices where CUSTOMER_ID=?", "MOO");
+        log.info(invoices);
+        assertEquals("invoices s/b 1", 1, invoices.size());
+
+        invoice = invoices.get(0);
+
+        log.info(invoice);
+
+        assertEquals("customer s/b MOO", "MOO", invoice.getCustomerId());
+        assertEquals("invoice # s/b 1", 1, invoice.getInvoiceId().intValue());
+        assertEquals("price s/b 10.5", 10.5f, invoice.getPrice());
+        assertEquals("qty s/b 10", 10, invoice.getQuantity());
+
+    }
+
+
     public void testGetDbMetaData() throws SQLException {
-        if (true) {
-            return;
-        }
+//        if (true) {
+//            return;
+//        }
         DatabaseMetaData dmd = con.getMetaData();
         log.info("GetDbMetaData for " + dmd.getDatabaseProductName());
 
+        log.info("PROCEDURES?");
         ResultSet result = dmd.getProcedures(null, "%", "%");
         for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
-            System.out.println(i + " - " + result.getMetaData().getColumnLabel(i));
+            out.println(i + " - " + result.getMetaData().getColumnLabel(i));
         }
 
-        System.out.println("Catalog\tSchema\tName");
+
+        out.println("Catalog\tSchema\tName");
         while (result.next()) {
-            System.out.println(result.getString("PROCEDURE_CAT") +
-                    " - " + result.getString("PROCEDURE_SCHEM") +
-                    " - " + result.getString("PROCEDURE_NAME"));
+            out.println("cat: " + result.getString("PROCEDURE_CAT") +
+                    " schem: " + result.getString("PROCEDURE_SCHEM") +
+                    " name: " + result.getString("PROCEDURE_NAME"));
         }
 
-        String[] tableTypes = {"TABLE"};
+        log.info("VIEWS!");
+        String[] tableTypes = {"VIEW"};
 
         ResultSetMetaData rsmd;
         ResultSet rs;
+        // get attributes
+        //rs = dmd.getAttributes("", "", "", "");
+        List<String> views = new ArrayList<>(32);
+        rs = dmd.getTables(null, session.getMetaData().getConnectionType().getSchemaPattern(), null, tableTypes);
+        rsmd = rs.getMetaData();
+        while (rs.next()) {
+            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                log.info(rsmd.getColumnName(i) + " = " + rs.getObject(i));
+            }
+            views.add(rs.getString("TABLE_NAME"));
+            log.info("----------");
+        }
+        log.info("*************************** VIEWS!");
+
+        tableTypes[0] = "TABLE";
+
         // get attributes
         //rs = dmd.getAttributes("", "", "", "");
         List<String> tables = new ArrayList<>(32);

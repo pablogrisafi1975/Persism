@@ -1,7 +1,6 @@
 package net.sf.persism;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
+import net.sf.persism.annotations.NotColumn;
 
 /**
  * Persism uses information from this class to detect which properties are modified in your data objects and only
@@ -12,20 +11,21 @@ import java.util.Collection;
  */
 public abstract class PersistableObject<T> implements Persistable<T> {
 
-    private T originalValue = null;
+    @NotColumn
+    private T persismOriginalValue = null;
 
     @Override
     public final void saveReadState() throws PersismException {
-        originalValue = clone();
+        persismOriginalValue = clone();
     }
 
     @Override
-    public final T getOriginalValue() {
-        return originalValue;
+    public final T readOriginalValue() {
+        return persismOriginalValue;
     }
 
     /**
-     * Used for getting originalValue
+     * Used by saveReadState for persismOriginalValue
      *
      * @return Clone of T
      */

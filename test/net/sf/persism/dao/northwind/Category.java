@@ -1,12 +1,9 @@
 package net.sf.persism.dao.northwind;
 
-import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.image.Image;
+import net.sf.persism.annotations.NotColumn;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * Data object for the Northwind categories table.
@@ -24,6 +21,7 @@ public final class Category {
     private byte[] picture;
     private String data; // xml type in SQL
 
+    @NotColumn // Fix for Breaking change in 1.1.0
     private BufferedImage image = null;
 
     public int getCategoryId() {
@@ -79,10 +77,10 @@ public final class Category {
             // OLE header is 1st 78 bytes so we strip it.
             byte[] imageData = new String(picture).substring(78).getBytes();
 
-            try (InputStream in = new ByteArrayInputStream(imageData)) {
-                Image image1 = new Image(in);
-                image = SwingFXUtils.fromFXImage(image1, null);
-            }
+//            try (InputStream in = new ByteArrayInputStream(imageData)) {
+//                Image image1 = new Image(in);
+//                image = SwingFXUtils.fromFXImage(image1, null);
+//            }
         }
         return image;
     }
@@ -94,6 +92,6 @@ public final class Category {
                 ", categoryName='" + categoryName + '\'' +
                 ", description='" + description + '\'' +
                 ", picture=" + picture +
-                "}";
+                "} ";
     }
 }

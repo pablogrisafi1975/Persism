@@ -1,5 +1,6 @@
 package net.sf.persism;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Blob;
@@ -56,7 +57,7 @@ enum Types {
 
     private static final Log log = Log.getLogger(Types.class);
 
-    private Class type;
+    private Class<?> type;
 
     <T> Types(Class<T> type) {
         init(type);
@@ -181,6 +182,11 @@ enum Types {
         // PUBS has SmallInt -> short
         return this == IntegerType || this == integerType || this == LongType || this == longType
                 || this == ShortType || this == shortType || this == BigDecimalType || this == BigIntegerType;
+    }
+
+    // https://stackoverflow.com/questions/2891970/getting-default-value-for-primitive-types
+    public static <T> T getDefaultValue(Class<T> clazz) {
+        return (T) Array.get(Array.newInstance(clazz, 1), 0);
     }
 }
 
